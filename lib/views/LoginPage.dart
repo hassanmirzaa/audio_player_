@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:audio_player_/controller/LoginController.dart';
+import 'package:audio_player_/views/ForgotpswdPage.dart';
 import 'package:audio_player_/views/HomePage.dart';
 import 'package:audio_player_/views/SignupPage.dart';
 import 'package:flutter/material.dart';
@@ -147,15 +148,26 @@ class LoginPage extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Forgot Password?',
-                                style: TextStyle(
+                              InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            ForgotPasswordPage()),
+                                  );
+                                },
+                                child: const Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black),
+                                    color: Colors.black,
+                                  ),
+                                ),
                               )
                             ],
                           ),
@@ -175,14 +187,18 @@ class LoginPage extends StatelessWidget {
                                   Navigator.push(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (context, animation, secondaryAnimation) =>
+                                      pageBuilder: (context, animation,
+                                              secondaryAnimation) =>
                                           SignupPage(),
-                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      transitionsBuilder: (context, animation,
+                                          secondaryAnimation, child) {
                                         var begin = Offset(1.0, 0.0);
                                         var end = Offset.zero;
                                         var curve = Curves.ease;
 
-                                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                        var tween = Tween(
+                                                begin: begin, end: end)
+                                            .chain(CurveTween(curve: curve));
 
                                         return SlideTransition(
                                           position: animation.drive(tween),
@@ -208,8 +224,12 @@ class LoginPage extends StatelessWidget {
                               : InkWell(
                                   onTap: () {
                                     controller.login(context);
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen(),));
-                                  } ,
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => HomeScreen(),
+                                        ));
+                                  },
                                   child: Container(
                                     height: height * 0.08,
                                     width: width,

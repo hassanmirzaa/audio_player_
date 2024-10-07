@@ -26,6 +26,8 @@ class SongProvider with ChangeNotifier {
 
   List<Song> get songs => _songs;
 
+  get favorites => null;
+
   void toggleFavorite(int index) {
     _songs[index].isFavorite = !_songs[index].isFavorite;
     notifyListeners();
