@@ -21,8 +21,8 @@ class MusicPlayerScreen extends StatelessWidget {
               width: width,
               child: Stack(
                 children: [
-                  Image.asset(
-                    'assets/office_girl.jpg',
+                  Image.network(
+                    song.imageUrl, // Use the image URL from the song
                     fit: BoxFit.cover,
                     height: double.infinity,
                     width: double.infinity,
@@ -69,23 +69,23 @@ class MusicPlayerScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2.0),
                     image: DecorationImage(
-                      image: AssetImage('assets/office_girl.jpg'),
+                      image: NetworkImage(song.imageUrl), // Use the image URL from the song
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
               ),
-              const Text(
-                'Instant Crush',
-                style: TextStyle(
+              Text(
+                song.title, // Use the title from the song
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
-                'feat. Julian Casablancas',
-                style: TextStyle(
+              Text(
+                song.artist, // Use the artist from the song
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 18,
                 ),
@@ -115,7 +115,9 @@ class MusicPlayerScreen extends StatelessWidget {
                     ),
                     Slider(
                       value: 0.5,
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        // Handle slider change
+                      },
                       activeColor: Colors.orangeAccent,
                       inactiveColor: Colors.white38,
                     ),
