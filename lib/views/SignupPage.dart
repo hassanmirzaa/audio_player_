@@ -1,3 +1,4 @@
+// signup_page.dart
 import 'dart:ui';
 import 'package:audio_player_/controller/SignupController.dart';
 import 'package:audio_player_/views/LoginPage.dart';
@@ -16,6 +17,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+
     return ChangeNotifierProvider(
       create: (context) => SignupController(),
       child: Scaffold(
@@ -81,7 +83,6 @@ class _SignupPageState extends State<SignupPage> {
                                 controller: controller.fullNameController,
                                 decoration: InputDecoration(
                                   hintText: "Enter your full name",
-                                  
                                   filled: true,
                                   fillColor: Colors.white24,
                                   hintStyle:
@@ -196,7 +197,8 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                               SizedBox(height: height * 0.01),
                               TextField(
-                                controller: controller.confirmPasswordController,
+                                controller:
+                                    controller.confirmPasswordController,
                                 decoration: InputDecoration(
                                   filled: true,
                                   fillColor: Colors.white24,
@@ -226,17 +228,43 @@ class _SignupPageState extends State<SignupPage> {
                                       color: Colors.black,
                                     ),
                                     onPressed: () {
-                                      controller.toggleConfirmPasswordVisibility();
+                                      controller
+                                          .toggleConfirmPasswordVisibility();
                                     },
                                   ),
                                 ),
                                 style: const TextStyle(color: Colors.black),
-                                obscureText: !controller.isConfirmPasswordVisible,
+                                obscureText:
+                                    !controller.isConfirmPasswordVisible,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
+                              SizedBox(height: height * 0.025),
+                              InkWell(
+                                onTap: (){
+                                  controller.signUp(context);
+                                },
+                                child: Container(
+                                  height: height * 0.08,
+                                  width: width,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15),
+                                    color: Colors.orangeAccent,
+                                  ),
+                                  child: controller.isLoading
+                                      ? const Center(
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                          ),
+                                      )
+                                      : const Center(child: Text("Create Account",style:  TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 19,
+                                          color: Colors.black,
+                                        ),)),
+                                ),
+                              ),
+                              SizedBox(height: height * 0.015),
+
+                              Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
@@ -251,14 +279,18 @@ class _SignupPageState extends State<SignupPage> {
                                   Navigator.push(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (context, animation, secondaryAnimation) =>
+                                      pageBuilder: (context, animation,
+                                              secondaryAnimation) =>
                                           LoginPage(),
-                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                        var begin = Offset(-1.0, 0.0);
+                                      transitionsBuilder: (context, animation,
+                                          secondaryAnimation, child) {
+                                        var begin = const Offset(1.0, 0.0);
                                         var end = Offset.zero;
                                         var curve = Curves.ease;
 
-                                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                        var tween = Tween(
+                                                begin: begin, end: end)
+                                            .chain(CurveTween(curve: curve));
 
                                         return SlideTransition(
                                           position: animation.drive(tween),
@@ -269,7 +301,7 @@ class _SignupPageState extends State<SignupPage> {
                                   );
                                 },
                                 child: const Text(
-                                  "Login now",
+                                  "Login",
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -278,30 +310,8 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          controller.isLoading
-                              ? const CircularProgressIndicator()
-                              : InkWell(
-                                  onTap: () => controller.signup(context),
-                                  child: Container(
-                                    height: height * 0.08,
-                                    width: width,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(15),
-                                      color: Colors.orangeAccent,
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Sign Up",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 19,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ),

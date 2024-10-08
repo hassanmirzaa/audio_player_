@@ -1,3 +1,6 @@
+// signup_controller.dart
+import 'package:audio_player_/services/auth_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class SignupController extends ChangeNotifier {
@@ -10,6 +13,8 @@ class SignupController extends ChangeNotifier {
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
 
+  final AuthService _authService = AuthService();
+
   void togglePasswordVisibility() {
     isPasswordVisible = !isPasswordVisible;
     notifyListeners();
@@ -20,7 +25,7 @@ class SignupController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void signup(BuildContext context) {
+  Future<void> signUp(BuildContext context) async {
     String fullName = fullNameController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -43,16 +48,19 @@ class SignupController extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    // Simulate a network request
-    Future.delayed(Duration(seconds: 2), () {
-      isLoading = false;
-      notifyListeners();
-      
+    try {
+      await _authService.signUpWithEmailPassword(email, password);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Signup successful')),
       );
-
-      Navigator.pushReplacementNamed(context, '/home'); 
-    });
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Signup failed: ${e.message}")),
+      );
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 }
