@@ -1,6 +1,6 @@
 import 'dart:ui';
+import 'package:audio_player_/models/SongsModels.dart';
 import 'package:flutter/material.dart';
-import 'package:audio_player_/controller/song_provider.dart';
 
 class MusicPlayerScreen extends StatelessWidget {
   final Song song;
@@ -60,7 +60,7 @@ class MusicPlayerScreen extends StatelessWidget {
                 ),
               ),
               Hero(
-                tag: 'song-${song.name}',
+                tag: 'song-${song.title}',
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 20.0),
                   height: height * 0.4,

@@ -1,35 +1,21 @@
+import 'package:audio_player_/models/SongsModels.dart';
 import 'package:flutter/material.dart';
-
-class Song {
-  String name;
-  String duration;
-  String session;
-  bool isFavorite;
-
-  Song({
-    required this.name,
-    required this.duration,
-    required this.session,
-    this.isFavorite = false,
-  });
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SongProvider with ChangeNotifier {
-  List<Song> _songs = List.generate(
-    20,
-    (index) => Song(
-      name: 'Song $index',
-      duration: '05 minutes',
-      session: '01 Session',
-    ),
-  );
+  List<Song> _songs = [];
 
   List<Song> get songs => _songs;
 
-  get favorites => null;
+  Future<void> fetchSongs() async {
+    // Assuming you fetch from Firestore here
+    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('songs').get();
+    _songs = snapshot.docs.map((doc) => Song.fromFirestore(doc)).toList();
+    notifyListeners();
+  }
 
   void toggleFavorite(int index) {
     _songs[index].isFavorite = !_songs[index].isFavorite;
-    notifyListeners();
+    notifyListeners(); // Ensure to call this method after changing the state
   }
 }
