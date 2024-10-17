@@ -1,7 +1,11 @@
+import 'package:audio_player_/views/FavoriteScreen.dart';
+import 'package:audio_player_/views/LoginPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:audio_player_/controller/song_provider.dart';
 import 'package:audio_player_/views/MusicPlayerScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,12 +15,59 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _isLoggingOut = false;
+  String _searchQuery = "";
+
+  Future<void> logout(BuildContext context) async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+    await FirebaseAuth.instance.signOut();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Colors.orangeAccent)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.orangeAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      logout(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
-    // Use FutureBuilder to avoid fetching songs during the build process
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(15.0),
@@ -24,36 +75,86 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(height: height * 0.03),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   "Songs",
                   style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
                 ),
-                CircleAvatar(
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.favorite_border_rounded),
+                Wrap(
+                  children: [
+                    CircleAvatar(
+                      child: IconButton(
+                        icon: const Icon(Icons.favorite_border_rounded),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FavoritesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    CircleAvatar(
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          _confirmLogout(context);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             SizedBox(height: height * 0.01),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search Audios',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+              ),
+              onChanged: (query) {
+                setState(() {
+                  _searchQuery = query;
+                });
+              },
+            ),
+            SizedBox(height: height * 0.01),
             Expanded(
-              // Use FutureBuilder to fetch the songs and handle loading state
               child: FutureBuilder(
-                future: Provider.of<SongProvider>(context, listen: false).fetchSongs(),
+                future: Provider.of<SongProvider>(context, listen: false)
+                    .fetchSongs(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(
+                      color: Colors.orangeAccent,
+                    ));
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else {
                     return Consumer<SongProvider>(
                       builder: (context, songProvider, child) {
-                        final songs = songProvider.songs;
+                        final songs = songProvider.songs.where((song) {
+                          return song.title
+                                  .toLowerCase()
+                                  .contains(_searchQuery.toLowerCase()) ||
+                              song.artist
+                                  .toLowerCase()
+                                  .contains(_searchQuery.toLowerCase());
+                        }).toList();
 
                         if (songs.isEmpty) {
-                          return const Center(child: Text('No songs available'));
+                          return const Center(
+                              child: Text('No songs available'));
                         }
 
                         return ListView.builder(
@@ -67,7 +168,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => MusicPlayerScreen(song: song),
+                                      builder: (context) =>
+                                          MusicPlayerScreen(song: song),
                                     ),
                                   );
                                 },
@@ -89,12 +191,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(10.0),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Row(
                                             children: [
                                               ClipRRect(
-                                                borderRadius: BorderRadius.circular(8.0),
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
                                                 child: Image.network(
                                                   song.imageUrl,
                                                   height: height * 0.08,
@@ -104,13 +208,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ),
                                               const SizedBox(width: 10),
                                               Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     song.title,
                                                     style: const TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 5),
@@ -125,12 +231,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 icon: Icon(
                                                   song.isFavorite
                                                       ? Icons.favorite
-                                                      : Icons.favorite_border_rounded,
-                                                  color: song.isFavorite ? Colors.black : null,
+                                                      : Icons
+                                                          .favorite_border_rounded,
+                                                  color: song.isFavorite
+                                                      ? Colors.black
+                                                      : null,
                                                 ),
                                                 onPressed: () {
-                                                  // Ensure to update the favorite status
-                                                  Provider.of<SongProvider>(context, listen: false).toggleFavorite(index);
+                                                  Provider.of<SongProvider>(
+                                                          context,
+                                                          listen: false)
+                                                      .toggleFavorite(index);
                                                 },
                                               ),
                                               const SizedBox(height: 10),
