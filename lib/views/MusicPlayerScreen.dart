@@ -130,13 +130,13 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon:  Icon(Icons.adaptive.arrow_back, color: Colors.white),
                       onPressed: () {
                         Navigator.pop(context);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.share, color: Colors.white),
+                      icon:  Icon(Icons.adaptive.share, color: Colors.white),
                       onPressed: () {
                         // Share functionality
                       },
