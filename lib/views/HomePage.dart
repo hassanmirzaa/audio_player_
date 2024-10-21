@@ -1,13 +1,9 @@
-import 'dart:ui';
-
-import 'package:audio_player_/views/FavoriteScreen.dart';
-import 'package:audio_player_/views/LoginPage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:audio_player_/controller/song_provider.dart';
+import 'dart:convert';
+import 'package:audio_player_/models/Chapters_detailsModel.dart';
 import 'package:audio_player_/views/MusicPlayerScreen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audio_player_/views/settings.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,52 +13,53 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isLoggingOut = false;
-  String _searchQuery = "";
+  bool isSearchbar = false;
+  TextEditingController searchController = TextEditingController();
+  List<Chapters> chapters = [];
+  List<Chapters> filteredChapters = [];
 
-  Future<void> logout(BuildContext context) async {
-    setState(() {
-      _isLoggingOut = true;
-    });
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', false);
-    await FirebaseAuth.instance.signOut();
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
+  @override
+  void initState() {
+    super.initState();
+    fetchChapters();
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.orangeAccent)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.orangeAccent),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
-    if (shouldLogout == true) {
-      logout(context);
+  Future<void> fetchChapters() async {
+    final response =
+        await http.get(Uri.parse('https://quranapi.pages.dev/api/surah.json'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = json.decode(response.body);
+      setState(() {
+        chapters = jsonData.map((data) => Chapters.fromJson(data)).toList();
+        filteredChapters = chapters;
+      });
+    } else {
+      throw Exception('Failed to load chapters');
     }
+  }
+
+  void _filterChapters(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        filteredChapters = chapters;
+      } else {
+        filteredChapters = chapters.where((chapter) {
+          final surahNameLower = chapter.surahName!.toLowerCase();
+          final revelationPlaceLower = chapter.revelationPlace!.toLowerCase();
+          final searchLower = query.toLowerCase();
+
+          return surahNameLower.contains(searchLower) ||
+              revelationPlaceLower.contains(searchLower);
+        }).toList();
+      }
+    });
   }
 
   @override
@@ -73,217 +70,202 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: Scaffold(
         body: Padding(
-          padding: const EdgeInsets.all(15.0),
+          padding: const EdgeInsets.only(top: 20, left: 15, right: 15),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-            //  SizedBox(height: height * 0.03),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Songs",
-                    style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xfffd5602), Color(0xffffaf42)],
                   ),
-                  Wrap(
-                    children: [
-                      ClipRRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 15,sigmaY: 15),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.black54,
-                            
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.favorite_outline,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => FavoritesScreen(),));
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      ClipRRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 15,sigmaY: 15),
-                          child: CircleAvatar(
-                            backgroundColor: Colors.black54,
-                            
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.logout_rounded,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                _confirmLogout(context);
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              SizedBox(height: height * 0.01),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search Audios',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                onChanged: (query) {
-                  setState(() {
-                    _searchQuery = query;
-                  });
-                },
-              ),
-              SizedBox(height: height * 0.01),
-              Expanded(
-                child: FutureBuilder(
-                  future: Provider.of<SongProvider>(context, listen: false)
-                      .fetchSongs(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(
-                        color: Colors.orangeAccent,
-                      ));
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    } else {
-                      return Consumer<SongProvider>(
-                        builder: (context, songProvider, child) {
-                          final songs = songProvider.songs.where((song) {
-                            return song.title
-                                    .toLowerCase()
-                                    .contains(_searchQuery.toLowerCase()) ||
-                                song.artist
-                                    .toLowerCase()
-                                    .contains(_searchQuery.toLowerCase());
-                          }).toList();
-      
-                          if (songs.isEmpty) {
-                            return const Center(
-                                child: Text('No songs available'));
-                          }
-      
-                          return ListView.builder(
-                            itemCount: songs.length,
-                            itemBuilder: (context, index) {
-                              final song = songs[index];
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: GestureDetector(
-                                  onTap: () {
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Wrap(
+                            children: [
+                              const Text(
+                                'Chapters',
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    isSearchbar = !isSearchbar;
+                                  });
+                                },
+                                icon: const Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Wrap(
+                            children: [
+                              CircleAvatar(
+                                radius: height * 0.027,
+                                backgroundColor: Colors.white,
+                                child: IconButton(
+                                  onPressed: () {},
+                                  icon: const Icon(
+                                    Icons.favorite_outline_rounded,
+                                    color: Color(0xffff8303),
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              CircleAvatar(
+                                radius: height * 0.027,
+                                backgroundColor: Colors.white,
+                                child: IconButton(
+                                  onPressed: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            MusicPlayerScreen(song: song),
+                                            const SettingsScreen(),
                                       ),
                                     );
                                   },
-                                  child: Hero(
-                                    tag: 'song-${song.title}',
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        color: Colors.orangeAccent,
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            blurRadius: 2,
-                                            color: Colors.black,
-                                            offset: Offset(-1, 2),
-                                            spreadRadius: 2,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8.0),
-                                                  child: Image.network(
-                                                    song.imageUrl,
-                                                    height: height * 0.08,
-                                                    width: width * 0.15,
-                                                    fit: BoxFit.cover,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      song.title,
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 5),
-                                                    Text(song.artist),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            Column(mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                    song.isFavorite
-                                                        ? Icons.favorite
-                                                        : Icons
-                                                            .favorite_border_rounded,
-                                                    color: song.isFavorite
-                                                        ? Colors.black
-                                                        : null,
-                                                  ),
-                                                  onPressed: () {
-                                                    Provider.of<SongProvider>(
-                                                            context,
-                                                            listen: false)
-                                                        .toggleFavorite(index);
-                                                  },
-                                                ),
-                                                const SizedBox(height: 10),
-                                                 CircleAvatar(
-                                                  backgroundColor: Colors.black,
-                                                  child: IconButton(onPressed: (){
-                                                  //  _playPause;
-                                                  },
-                                                   icon: const Icon(
-                                                      Icons.play_arrow_rounded,
-                                                      color: Colors.white,
-                                                    ),)
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                  icon: const Icon(
+                                    Icons.settings_rounded,
+                                    color: Color(0xffff8303),
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: height * 0.01),
+                      AnimatedCrossFade(
+                        firstChild: TextField(
+                          controller: searchController,
+                          decoration: InputDecoration(
+                            hintText: "Search Chapters",
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.search),
+                          ),
+                          onChanged: (value) {
+                            _filterChapters(value);
+                          },
+                        ),
+                        secondChild: const SizedBox(),
+                        crossFadeState: isSearchbar
+                            ? CrossFadeState.showFirst
+                            : CrossFadeState.showSecond,
+                        duration: const Duration(milliseconds: 300),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: height * 0.01),
+              Expanded(
+                child: ListView.builder(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  itemCount: filteredChapters.length,
+                  itemBuilder: (context, index) {
+                    final chapter = filteredChapters[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MusicPlayerScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: height * 0.1,
+                          width: width * 0.9,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xffff8303), Color(0xffffaf42)],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    color: Colors.white,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(30),
+                                    child: Image.asset(
+                                      'assets/apple-logo.png',
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    }
+                                Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    Text(
+                                      chapter.surahName ?? '',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 25,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      chapter.revelationPlace ?? '',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        // Implement your favorite toggle logic here
+                                      });
+                                    },
+                                    icon: const Icon(
+                                      Icons.favorite_outline,
+                                      size: 30,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),
